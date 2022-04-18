@@ -1,0 +1,58 @@
+spring:
+  application:
+    name: MIOA
+  profiles:
+    active: dev #默认为开发环境
+
+#MyBatis
+mybatis:
+  mapper-locations:
+    - classpath:mapper/*.xml
+    - classpath*:mbg/mapper/*.xml
+
+jwt:
+  tokenHeader: Authorization #JWT存储的请求头
+  secret: mall-admin-secret #JWT加解密使用的密钥
+  expiration: 604800 #JWT的超期限时间(60*60*24*7)
+  tokenHead: 'Bearer '  #JWT负载中拿到开头
+
+secure:
+  ignored:
+    urls: #安全路径白名单
+      - /
+      - /*.html
+      - /swagger-ui/
+      - /swagger-resources/**
+      - /swagger/**
+      - /**/v2/api-docs/**
+      - /**/*.html
+      - /**/*.js
+      - /**/*.css
+      - /**/*.png
+      - /**/*.ico
+      - /webjars/springfox-swagger-ui/**
+      - /actuator/**
+      - /druid/**
+      - /user/login
+      - /user/register
+      - /user/info
+      - /user/logout
+      - /minio/upload
+
+# 自定义redis key
+redis:
+  database: mall
+  key:
+    admin: 'ums:admin'
+    resourceList: 'ums:resourceList'
+    authCode: 'ums:authCode'
+    orderId: 'oms:orderId'
+    member: 'ums:member'
+  expire:
+    authCode: 90 # 验证码超期时间
+    common: 86400 # 24小时
+
+
+host:
+  mall:
+    admin: http://localhost:8088

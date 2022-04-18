@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="pers.jl.mioa.mapper.SysUserRoleCustomizeMapper">
+    <select id="getMenuList" resultMap="pers.jl.mioa.mbg.mapper.SysMenuMapper.BaseResultMap">
+        SELECT
+            m.*
+        FROM
+            sys_user_role ur
+                LEFT JOIN sys_role r ON ur.role_id = r.role_id
+                LEFT JOIN sys_role_menu rm ON r.role_id = rm.role_id
+                LEFT JOIN sys_menu m ON rm.menu_id = m.menu_id
+        WHERE
+            ur.user_id = #{userId}
+          AND m.menu_id IS NOT NULL
+          AND m.menu_id NOT IN (
+            SELECT
+                m.menu_id
+            FROM
+                sys_user_menu um
+                    LEFT JOIN sys_menu m ON um.menu_id = m.menu_id
+            WHERE
+                um.type = - 1
+              AND um.user_id = #{userId}
+        )
+        UNION
+        SELECT
+            m.*
+        FROM
+            sys_user_menu um
+                LEFT JOIN sys_menu m ON um.menu_id = m.menu_id
+        WHERE
+            um.type = 1
+          AND um.user_id = #{userId}
+    </select>
+</mapper>

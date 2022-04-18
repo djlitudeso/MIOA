@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="pers.jl.mioa.mapper.AdmEmpDeptMapper">
+
+<select id="getDeptById" parameterType="java.lang.Long"
+        resultMap="pers.jl.mioa.mbg.mapper.AdmDepartmentMapper.BaseResultMap">
+    select
+        ad.*
+    from
+        adm_employee ae , adm_department ad
+    where
+        ae.department_id = ad.dept_id
+      and
+        ae.employee_id = #{employeeId,jdbcType=BIGINT}
+    </select>
+
+<select id="getLeader" parameterType="pers.jl.mioa.mbg.entity.AdmEmployee"
+        resultMap="pers.jl.mioa.mbg.mapper.AdmEmployeeMapper.BaseResultMap">
+    select *
+    from adm_employee
+    <where>
+    <if test="employee.level &lt; 7">
+        level = 7 and department_id = #{employee.departmentId}
+    </if>
+    <if test="employee.level == 7">
+        and level = 8
+    </if>
+    <if test="employee.level == 8">
+        and employee_id = #{employee.employeeId}
+    </if>
+    </where>
+    </select>
+</mapper>
