@@ -15,6 +15,8 @@ import pers.jl.mioa.mbg.mapper.AdmEmployeeMapper;
 import pers.jl.mioa.service.LeaveFormService;
 
 import java.util.Date;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 请假单流程服务
@@ -121,4 +123,20 @@ public class LeaveFormServiceImpl implements LeaveFormService {
         }
         return form;
     }
+
+    /**
+     * 获取请假单
+     *
+     * @param operatorId 经办人id
+     * @return 请假单
+     */
+    @Override
+    public List<Map> getLeaveFormList(Long operatorId) {
+
+        List<Map> formList = leaveFormCusMapper.selectByParams(operatorId);
+
+        return formList;
+    }
+
+
 }

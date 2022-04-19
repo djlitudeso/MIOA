@@ -9,4 +9,14 @@
     values
         (#{employeeId},#{formType},#{startTime},#{endTime},#{reason},#{createTime},#{state});
     </insert>
+    <select id="selectByParams" parameterType="java.util.Map" resultType="java.util.Map">
+        select lf.*, e.name, d.*
+        from
+        adm_leave_form lf, adm_process_flow pf, adm_employee e, adm_department d
+        where
+        lf.form_id = pf.form_id
+        and lf.employee_id = e.employee_id
+        and e.department_id = d.dept_id
+        and pf.state = 'process' and pf.operator_id = #{pf_operator_id}
+    </select>
 </mapper>

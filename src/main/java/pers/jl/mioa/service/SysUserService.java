@@ -69,4 +69,11 @@ public interface SysUserService {
      */
     UserDetails loadUserByUsername(String username);
 
+    /**
+     * 从token中获取用户信息
+     *
+     * @return 用户
+     */
+    SysUser getUserByToken();
+
 }

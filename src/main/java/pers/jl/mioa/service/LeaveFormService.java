@@ -2,6 +2,9 @@ package pers.jl.mioa.service;
 
 import pers.jl.mioa.mbg.entity.AdmLeaveForm;
 
+import java.util.List;
+import java.util.Map;
+
 /**
  * 请假单流程
  *
@@ -19,4 +22,12 @@ public interface LeaveFormService {
      * @return 请假单
      */
     public AdmLeaveForm createLeaveForm(AdmLeaveForm form);
+
+    /**
+     * 获取请假单
+     *
+     * @param operatorId 经办人id
+     * @return 请假单
+     */
+    List<Map> getLeaveFormList(Long operatorId);
 }

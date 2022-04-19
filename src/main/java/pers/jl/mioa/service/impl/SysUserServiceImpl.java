@@ -40,7 +40,6 @@ import java.util.List;
 public class SysUserServiceImpl implements SysUserService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SysUserServiceImpl.class);
-
     @Autowired
     private UserDetailsService userDetailsService;
     @Autowired
@@ -53,6 +52,8 @@ public class SysUserServiceImpl implements SysUserService {
     private SysUserMapper sysUserMapper;
     @Autowired
     private SysUserRoleCustomizeMapper sysUserRoleCustomizeMapper;
+
+    private String loginToken;
 
     /**
      * 根据用户名获取用户
@@ -119,6 +120,7 @@ public class SysUserServiceImpl implements SysUserService {
         } catch (AuthenticationException e) {
             LOGGER.warn("登录异常:{}", e.getMessage());
         }
+        loginToken = token;
         return token;
     }
 
@@ -189,4 +191,18 @@ public class SysUserServiceImpl implements SysUserService {
         }
         throw new UsernameNotFoundException("用户名或密码错误");
     }
+
+    /**
+     * 从token中获取用户信息
+     *
+     * @return 用户
+     */
+    @Override
+    public SysUser getUserByToken() {
+        String userName = jwtTokenUtil.getUserNameFromToken(loginToken);
+        SysUser sysUser;
+        sysUser = getUserByUsername(userName);
+        return sysUser;
+    }
+
 }
