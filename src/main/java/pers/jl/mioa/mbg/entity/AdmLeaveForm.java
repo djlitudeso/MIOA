@@ -11,7 +11,7 @@ public class AdmLeaveForm implements Serializable {
     @ApiModelProperty(value = "请假单编号",hidden = true,allowEmptyValue = true)
     private Long formId;
 
-    @ApiModelProperty(value = "员工id",hidden = false,allowEmptyValue = true)
+    @ApiModelProperty(value = "员工id",hidden = true,allowEmptyValue = true)
     private Long employeeId;
 
     @ApiModelProperty(value = "请假类型：1-事假，2-病假，3-工伤假，4-婚假，5-产假，6-丧假")

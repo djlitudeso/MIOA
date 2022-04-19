@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import pers.jl.mioa.common.exception.Asserts;
 import pers.jl.mioa.component.constant.BusinessConstants;
 import pers.jl.mioa.mapper.AdmEmpDeptMapper;
 import pers.jl.mioa.mapper.LeaveFormCusMapper;
@@ -17,6 +18,7 @@ import pers.jl.mioa.service.LeaveFormService;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 请假单流程服务
@@ -133,10 +135,72 @@ public class LeaveFormServiceImpl implements LeaveFormService {
     @Override
     public List<Map> getLeaveFormList(Long operatorId) {
 
-        List<Map> formList = leaveFormCusMapper.selectByParams(operatorId);
+        return leaveFormCusMapper.selectByParams(operatorId);
 
-        return formList;
     }
 
+    /**
+     * 请假单审批功能
+     *
+     * @param formId     请假单编号
+     * @param operatorId 经办人id
+     * @param result     审批结果
+     * @param reason     审批意见
+     */
+    @Override
+    public void auditLeaveForm(Long formId, Long operatorId, String result, String reason) {
+        // 1.无论'同意'or'驳回'，当前任务状态变更为 complete
+        List<AdmProcessFlow> flowList = processFlowCusMapper.selectProcessFlowByFormId(formId);
+        if (flowList.size() == 0) {
+            Asserts.fail("无效的审批流程");
+        }
+        //获取 符合条件的 当前任务 ProcessFlow对象
+        List<AdmProcessFlow> processList =
+                flowList.stream()
+                        .filter(p -> p.getOperatorId().equals(operatorId) && "process".equals(p.getState()))
+                        .collect(Collectors.toList());
+        AdmProcessFlow processFlow = null;
+        if (processList.size() == 0) {
+            Asserts.fail("未找到待处理任务");
+        } else {
+            processFlow = processList.get(0);
+            processFlow.setState("complete");
+            processFlow.setResult(result);
+            processFlow.setReason(reason);
+            processFlow.setAuditTime(new Date());
+            processFlowCusMapper.updateProcessFlow(processFlow);
+        }
+
+        AdmLeaveForm form = leaveFormCusMapper.selectLeaveFormById(formId);
+        // 2.如果当前任务是最后一个节点，代表流程结束，更新请假单状态为 'approved' or 'refused'
+        if (processFlow.getIsLast() == 1) {
+            // result : approved || refused
+            form.setState(result);
+            leaveFormCusMapper.updateLeaveForm(form);
+        }
+        else {
+            // readyList 包含所有后续任务节点
+            List<AdmProcessFlow> readyList =
+                    flowList.stream()
+                            .filter(p -> "ready".equals(p.getState()))
+                            .collect(Collectors.toList());
+            // 3.如果当前任务不是最后一个节点且审批同意，那下一个节点的状态应由 'ready' 改为 'process'
+            if (BusinessConstants.AUDIT_RESULT_APPROVED.equals(result)) {
+                AdmProcessFlow readyProcess = readyList.get(0);
+                readyProcess.setState("process");
+                processFlowCusMapper.updateProcessFlow(readyProcess);
+            }
+            else if (BusinessConstants.AUDIT_RESULT_REFUSED.equals(result)) {
+                // 4.如果当前任务不是最后一个节点且审批驳回，则后续所有任务状态变更为 'cancel' ,请假单状态变为 'refused'
+                for ( AdmProcessFlow p : readyList ) {
+                    p.setState("cancel");
+                    processFlowCusMapper.updateProcessFlow(p);
+                }
+                form.setState("refused");
+                leaveFormCusMapper.updateLeaveForm(form);
+            }
+        }
+
+    }
 
 }

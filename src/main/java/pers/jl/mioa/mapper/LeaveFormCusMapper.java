@@ -28,4 +28,18 @@ public interface LeaveFormCusMapper {
      */
     List<Map> selectByParams(@Param("pf_operator_id") Long operatorId);
 
+    /**
+     * 通过请假单编号获取请假单
+     *
+     * @param formId 请假单编号
+     * @return 请假单对象
+     */
+    AdmLeaveForm selectLeaveFormById(@Param("formId") Long formId);
+
+    /**
+     * 更新请假单数据
+     * @param form 请假单
+     */
+    void updateLeaveForm(AdmLeaveForm form);
+
 }

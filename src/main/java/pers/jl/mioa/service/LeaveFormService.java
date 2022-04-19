@@ -21,7 +21,7 @@ public interface LeaveFormService {
      * @param form 数据
      * @return 请假单
      */
-    public AdmLeaveForm createLeaveForm(AdmLeaveForm form);
+    AdmLeaveForm createLeaveForm(AdmLeaveForm form);
 
     /**
      * 获取请假单
@@ -30,4 +30,14 @@ public interface LeaveFormService {
      * @return 请假单
      */
     List<Map> getLeaveFormList(Long operatorId);
+
+    /**
+     * 请假单审批功能
+     *
+     * @param formId 请假单编号
+     * @param operatorId 经办人id
+     * @param result 审批结果
+     * @param reason 审批意见
+     */
+    void auditLeaveForm(Long formId,Long operatorId,String result,String reason);
 }

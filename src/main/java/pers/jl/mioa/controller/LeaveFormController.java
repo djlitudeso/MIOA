@@ -2,11 +2,10 @@ package pers.jl.mioa.controller;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import pers.jl.mioa.common.api.CommonResult;
 import pers.jl.mioa.mbg.entity.AdmLeaveForm;
 import pers.jl.mioa.mbg.entity.SysUser;
@@ -27,9 +26,9 @@ import java.util.Map;
 @RequestMapping("/leave")
 public class LeaveFormController {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(LeaveFormController.class);
     @Autowired
     private LeaveFormService leaveFormService;
-
     @Autowired
     private SysUserService sysUserService;
 
@@ -55,4 +54,21 @@ public class LeaveFormController {
         result.put("data",formList);
         return CommonResult.success(result);
     }
+
+    @ApiOperation("处理审批请假单")
+    @PostMapping("auditForm")
+    public CommonResult auditLeaveForm(@RequestParam Long formId, @RequestParam String result,
+                                       @RequestParam String reason){
+        SysUser user = sysUserService.getUserByToken();
+        Map<String, Object> auditResult = new HashMap<>();
+        try {
+            leaveFormService.auditLeaveForm(formId, user.getEmployeeId(), result, reason);
+            auditResult.put("message","success");
+        } catch (Exception e){
+            LOGGER.error("请假单审核失败",e);
+            auditResult.put("message",e.getMessage());
+        }
+        return CommonResult.success(auditResult);
+    }
+
 }

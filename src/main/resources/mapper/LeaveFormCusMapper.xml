@@ -19,4 +19,18 @@
         and e.department_id = d.dept_id
         and pf.state = 'process' and pf.operator_id = #{pf_operator_id}
     </select>
+
+<select id="selectLeaveFormById" parameterType="Long"
+        resultMap="pers.jl.mioa.mbg.mapper.AdmLeaveFormMapper.BaseResultMap">
+    select *
+    from adm_leave_form
+    where form_id = #{formId}
+    </select>
+
+<update id="updateLeaveForm" parameterType="pers.jl.mioa.mbg.entity.AdmLeaveForm">
+    update adm_leave_form
+    set employee_id = #{employeeId}, form_type = #{formType}, start_time = #{startTime}, end_time = #{endTime},
+    reason = #{reason}, create_time = #{createTime}, state = #{state}
+    where form_id = #{formId}
+    </update>
 </mapper>

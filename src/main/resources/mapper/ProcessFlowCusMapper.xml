@@ -10,4 +10,20 @@
         values
             (#{formId},#{operatorId},#{action},#{result},#{reason},#{createTime},#{auditTime},#{orderNo},#{state},#{isLast});
     </insert>
+
+    <select id="selectProcessFlowByFormId" parameterType="Long"
+            resultMap="pers.jl.mioa.mbg.mapper.AdmProcessFlowMapper.BaseResultMap">
+        select *
+        from adm_process_flow
+        where form_id = #{formId}
+        order by order_no
+    </select>
+
+    <update id="updateProcessFlow" parameterType="pers.jl.mioa.mbg.entity.AdmProcessFlow">
+        update adm_process_flow
+        set form_id = #{formId},operator_id = #{operatorId},action = #{action},result = #{result},reason = #{reason},
+        create_time = #{createTime},audit_time = #{auditTime},order_no = #{orderNo},state = #{state},is_last = #{isLast}
+        where process_id = #{processId}
+    </update>
+
 </mapper>
