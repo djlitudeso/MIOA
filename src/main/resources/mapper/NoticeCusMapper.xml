@@ -8,4 +8,12 @@
             sys_notice (receiver_id, content, create_time)
         values (#{receiverId},#{content},#{createTime});
     </insert>
+    <select id="selectNoticeByReceiveId" parameterType="Long"
+            resultMap="pers.jl.mioa.mbg.mapper.SysNoticeMapper.BaseResultMap">
+        select *
+        from sys_notice
+        where receiver_id = #{receiveId}
+        order by create_time desc
+        limit 0 , 100
+    </select>
 </mapper>

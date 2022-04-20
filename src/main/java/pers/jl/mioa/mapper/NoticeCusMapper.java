@@ -1,6 +1,9 @@
 package pers.jl.mioa.mapper;
 
+import org.apache.ibatis.annotations.Param;
 import pers.jl.mioa.mbg.entity.SysNotice;
+
+import java.util.List;
 
 /**
  * @author: JL Du
@@ -14,4 +17,12 @@ public interface NoticeCusMapper {
      * @param notice null
      */
     void createNotice(SysNotice notice);
+
+    /**
+     * null
+     * @param receiveId  null
+     * @return null
+     */
+    List<SysNotice> selectNoticeByReceiveId(@Param("receiveId") Long receiveId);
+
 }

@@ -4,6 +4,9 @@ import io.swagger.annotations.ApiModelProperty;
 import java.io.Serializable;
 import java.util.Date;
 
+/**
+ * @author DJ
+ */
 public class SysNotice implements Serializable {
     private Long noticeId;
 
@@ -15,6 +18,16 @@ public class SysNotice implements Serializable {
 
     @ApiModelProperty(value = "创建时间")
     private Date createTime;
+
+    public SysNotice(){
+
+    }
+
+    public SysNotice(Long receiverId, String content) {
+        this.receiverId = receiverId;
+        this.content = content;
+        this.createTime = new Date();
+    }
 
     private static final long serialVersionUID = 1L;
 

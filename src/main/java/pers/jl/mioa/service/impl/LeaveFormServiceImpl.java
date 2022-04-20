@@ -8,13 +8,16 @@ import pers.jl.mioa.common.exception.Asserts;
 import pers.jl.mioa.component.constant.BusinessConstants;
 import pers.jl.mioa.mapper.AdmEmpDeptMapper;
 import pers.jl.mioa.mapper.LeaveFormCusMapper;
+import pers.jl.mioa.mapper.NoticeCusMapper;
 import pers.jl.mioa.mapper.ProcessFlowCusMapper;
 import pers.jl.mioa.mbg.entity.AdmEmployee;
 import pers.jl.mioa.mbg.entity.AdmLeaveForm;
 import pers.jl.mioa.mbg.entity.AdmProcessFlow;
+import pers.jl.mioa.mbg.entity.SysNotice;
 import pers.jl.mioa.mbg.mapper.AdmEmployeeMapper;
 import pers.jl.mioa.service.LeaveFormService;
 
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +42,9 @@ public class LeaveFormServiceImpl implements LeaveFormService {
     private ProcessFlowCusMapper processFlowCusMapper;
     @Autowired
     private AdmEmpDeptMapper admEmpDeptMapper;
+
+    @Autowired
+    private NoticeCusMapper noticeCusMapper;
 
     /**
      * 创建请假单
@@ -66,6 +72,9 @@ public class LeaveFormServiceImpl implements LeaveFormService {
         processFlow1.setState("complete");
         processFlow1.setIsLast(0);
         processFlowCusMapper.createProcessFlow(processFlow1);
+        // noticeContent 中所需要的时间格式定义
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd-HH时");
+
         // 7级以下员工，生成部门经理审批任务，请假时间大于72小时，还需要生成总经理审批任务
         if(employee.getLevel() < BusinessConstants.DEPARTMENT_MANAGER_LEVEL){
             AdmEmployee dmanager = admEmpDeptMapper.getLeader(employee);
@@ -95,6 +104,18 @@ public class LeaveFormServiceImpl implements LeaveFormService {
                 processFlow2.setIsLast(1);
                 processFlowCusMapper.createProcessFlow(processFlow2);
             }
+
+            // noticeContent：SysNotice表中 content 字段内容定义
+            String noticeContent1 = String.format("您的请假申请[%s-%s]已提交,，请等待上级审批.",
+                    sdf.format(form.getStartTime()), sdf.format(form.getEndTime()));
+            // 请假单已提交消息
+            noticeCusMapper.createNotice(new SysNotice(employee.getEmployeeId(),noticeContent1));
+
+            // 通知部门经理审批消息
+            String noticeContent2 = String.format("%s-%s提起请假申请[%s-%s],请尽快审批.", employee.getTitle(),
+                    employee.getName(), sdf.format(form.getStartTime()), sdf.format(form.getEndTime()));
+            noticeCusMapper.createNotice(new SysNotice(dmanager.getEmployeeId(),noticeContent2));
+
             //部门经理
         } else if (employee.getLevel() == BusinessConstants.DEPARTMENT_MANAGER_LEVEL) {
             // 7级员工,生成总经理审批任务
@@ -108,6 +129,19 @@ public class LeaveFormServiceImpl implements LeaveFormService {
             processFlow4.setState("process");
             processFlow4.setIsLast(1);
             processFlowCusMapper.createProcessFlow(processFlow4);
+
+            // noticeContent：SysNotice表中 content 字段内容定义
+            String noticeContent1 = String.format("您的请假申请[%s-%s]已提交,，请等待上级审批.",
+                    sdf.format(form.getStartTime()), sdf.format(form.getEndTime()));
+            // 请假单已提交消息
+            noticeCusMapper.createNotice(new SysNotice(employee.getEmployeeId(),noticeContent1));
+
+            // noticeContent：SysNotice表中 content 字段内容定义
+            String noticeContent2 = String.format("%s-%s提起请假申请[%s-%s],请尽快审批.", employee.getTitle(),
+                    employee.getName(), sdf.format(form.getStartTime()), sdf.format(form.getEndTime()));
+            // 通知总经理审批消息
+            noticeCusMapper.createNotice(new SysNotice(manager.getEmployeeId(),noticeContent2));
+
         } else if (employee.getLevel() == BusinessConstants.GENERAL_MANAGER_LEVEL) {
             // 8级员工,生成总经理审批任务,系统自动通过
             AdmProcessFlow processFlow5 = new AdmProcessFlow();
@@ -122,6 +156,13 @@ public class LeaveFormServiceImpl implements LeaveFormService {
             processFlow5.setOrderNo(2);
             processFlow5.setIsLast(1);
             processFlowCusMapper.createProcessFlow(processFlow5);
+
+            // noticeContent：SysNotice表中 content 字段内容定义
+            String noticeContent = String.format("您的请假申请[%s-%s]系统已自动批准通过.",
+                    sdf.format(form.getStartTime()), sdf.format(form.getEndTime()));
+            // 总经理 请假单已提交消息
+            noticeCusMapper.createNotice(new SysNotice(employee.getEmployeeId(),noticeContent));
+
         }
         return form;
     }
@@ -172,11 +213,39 @@ public class LeaveFormServiceImpl implements LeaveFormService {
         }
 
         AdmLeaveForm form = leaveFormCusMapper.selectLeaveFormById(formId);
+
+        // noticeContent 中所需要的时间格式定义
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd-HH时");
+        // 表单提交人信息
+        AdmEmployee employee = admEmployeeMapper.selectByPrimaryKey(form.getEmployeeId());
+        // 任务经办人信息
+        AdmEmployee operator = admEmployeeMapper.selectByPrimaryKey(operatorId);
+
         // 2.如果当前任务是最后一个节点，代表流程结束，更新请假单状态为 'approved' or 'refused'
         if (processFlow.getIsLast() == 1) {
             // result : approved || refused
             form.setState(result);
             leaveFormCusMapper.updateLeaveForm(form);
+
+            String var = null;
+            if ("approved".equals(result)) {
+                var = "批准";
+            } else if ("refused".equals(result)){
+                var = "驳回";
+            }
+
+            // noticeContent：SysNotice表中 content 字段内容定义
+            //发送给表单提交人的通知
+            String noticeContent1 = String.format("您的请假申请[%s-%s]%s%s已%s,审批意见:%s,审批流程已结束.",
+                    sdf.format(form.getStartTime()), sdf.format(form.getEndTime()),
+                    operator.getTitle(),operator.getName(), var, reason);
+            noticeCusMapper.createNotice(new SysNotice(form.getEmployeeId(),noticeContent1));
+            // 发给审批人的通知
+            String noticeContent2 = String.format("%s-%s提起请假申请[%s-%s]您已%s,审批意见:%s,审批流程已结束.",
+                    employee.getTitle(), employee.getName(),
+                    sdf.format(form.getStartTime()), sdf.format(form.getEndTime()), var, reason);
+            noticeCusMapper.createNotice(new SysNotice(operator.getEmployeeId(),noticeContent2));
+
         }
         else {
             // readyList 包含所有后续任务节点
@@ -189,6 +258,25 @@ public class LeaveFormServiceImpl implements LeaveFormService {
                 AdmProcessFlow readyProcess = readyList.get(0);
                 readyProcess.setState("process");
                 processFlowCusMapper.updateProcessFlow(readyProcess);
+
+                // 消息1：发送给表单提交人，部分经理已经审核通过，交由上级继续审核
+                String noticeContent1 = String.format("您的请假申请[%s-%s]%s%s已批准,审批意见:%s,交由上级继续审核.",
+                        sdf.format(form.getStartTime()), sdf.format(form.getEndTime()),
+                        operator.getTitle(),operator.getName(), reason);
+                noticeCusMapper.createNotice(new SysNotice(form.getEmployeeId(),noticeContent1));
+
+                // 消息2：通知总经理有新的审批任务
+                String noticeContent2 = String.format("%s-%s提起请假申请[%s-%s],请尽快审批.",
+                        employee.getTitle(), employee.getName(),
+                        sdf.format(form.getStartTime()), sdf.format(form.getEndTime()) );
+                noticeCusMapper.createNotice(new SysNotice(readyProcess.getOperatorId(), noticeContent2));
+
+                // 消息3：通知部门经理（当前经办人），员工的申请您已批准，交由上级继续审核
+                String noticeContent3 = String.format("%s-%s提起请假申请[%s-%s]您已批准,审批意见:%s,交由上级继续审核.",
+                        employee.getTitle(), employee.getName(),
+                        sdf.format(form.getStartTime()), sdf.format(form.getEndTime()) ,reason);
+                noticeCusMapper.createNotice(new SysNotice(operator.getEmployeeId(),noticeContent3));
+
             }
             else if (BusinessConstants.AUDIT_RESULT_REFUSED.equals(result)) {
                 // 4.如果当前任务不是最后一个节点且审批驳回，则后续所有任务状态变更为 'cancel' ,请假单状态变为 'refused'
@@ -198,6 +286,19 @@ public class LeaveFormServiceImpl implements LeaveFormService {
                 }
                 form.setState("refused");
                 leaveFormCusMapper.updateLeaveForm(form);
+
+                // 消息1：发送给表单提交人，申请已被驳回
+                String noticeContent1 = String.format("您的请假申请[%s-%s]%s%s已驳回,审批意见:%s,交由上级继续审核.",
+                        sdf.format(form.getStartTime()), sdf.format(form.getEndTime()),
+                        operator.getTitle(),operator.getName(), reason);
+                noticeCusMapper.createNotice(new SysNotice(form.getEmployeeId(),noticeContent1));
+
+                // 消息2：通知经办人您已驳回 请假申请
+                String noticeContent2 = String.format("%s-%s提起请假申请[%s-%s],您已驳回.",
+                        employee.getTitle(), employee.getName(),
+                        sdf.format(form.getStartTime()), sdf.format(form.getEndTime()) );
+                noticeCusMapper.createNotice(new SysNotice(operator.getEmployeeId(), noticeContent2));
+
             }
         }
 
